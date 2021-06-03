@@ -13,9 +13,9 @@ object VenuesRepository {
 
     private const val TAG = "VenuesRepository"
 
-    private const val RADIUS = 1000
+    private const val RADIUS = 500
     private const val CATEGORY_ID = "4d4b7105d754a06374d81259"
-    private const val LIMIT = 10
+//    private const val LIMIT = 10
     private const val DATE_FORMAT = "yyyyMMdd"
 
     private val mVenuesWebService: VenuesWebService =
@@ -25,9 +25,10 @@ object VenuesRepository {
     fun getVenuesWithPhotos(
         latitude: Double,
         longitude: Double,
-        altitude: Int
+        altitude: Int,
+        limit: Int
     ): Observable<List<Venue>> {
-        return searchVenues(latitude, longitude, altitude)
+        return searchVenues(latitude, longitude, altitude, limit)
         // FIXME:   The photos API is a premium Foursquare feature;
         //      Just uncomment this block to test it out
 
@@ -51,7 +52,8 @@ object VenuesRepository {
     private fun searchVenues(
         latitude: Double,
         longitude: Double,
-        altitude: Int
+        altitude: Int,
+        limit: Int
     ): Observable<List<Venue>> {
         val versionDate = SimpleDateFormat(DATE_FORMAT).format(Date())
 
@@ -60,7 +62,7 @@ object VenuesRepository {
             altitude,
             RADIUS,
             CATEGORY_ID,
-            LIMIT,
+            limit,
             versionDate,
             BuildConfig.FOURSQUARE_CLIENT_ID,
             BuildConfig.FOURSQUARE_CLIENT_SECRET
@@ -72,7 +74,8 @@ object VenuesRepository {
             venueId = venueId,
             version = SimpleDateFormat(DATE_FORMAT).format(Date()),
             group = null,
-            limit = LIMIT,
+            // TODO test and see whether to set to 1 or not
+            limit = 1,
             offset = null,
             clientId = BuildConfig.FOURSQUARE_CLIENT_ID,
             clientSecret = BuildConfig.FOURSQUARE_CLIENT_SECRET

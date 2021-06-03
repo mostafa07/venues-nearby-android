@@ -1,10 +1,13 @@
 package com.example.venuesnearby.ui.main
 
+import android.app.Application
+import android.content.SharedPreferences
 import android.location.Location
 import android.util.Log
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.ViewModel
+import androidx.preference.PreferenceManager
 import com.example.venuesnearby.R
 import com.example.venuesnearby.data.model.Venue
 import com.example.venuesnearby.data.model.app.CustomMessage
@@ -13,10 +16,11 @@ import com.example.venuesnearby.exception.BusinessException
 import rx.android.schedulers.AndroidSchedulers
 import rx.schedulers.Schedulers
 
-class MainViewModel : ViewModel() {
+class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val mCurrentUserLocationMutableLiveData: MutableLiveData<Location> = MutableLiveData()
-    private val mLastUpdatedUserLocationMutableLiveData: MutableLiveData<Location> = MutableLiveData()
+    private val mLastUpdatedUserLocationMutableLiveData: MutableLiveData<Location> =
+        MutableLiveData()
 
     private val mVenuesListMutableLiveData: MutableLiveData<List<Venue>> = MutableLiveData()
     private val mSelectedVenueMutableLiveData: MutableLiveData<Venue?> = MutableLiveData(null)
@@ -25,7 +29,13 @@ class MainViewModel : ViewModel() {
     private val mErrorMessageMutableLiveData: MutableLiveData<CustomMessage> = MutableLiveData()
     private val mIsContentLoadingMutableLiveData: MutableLiveData<Boolean> = MutableLiveData(true)
 
+    private val mSharedPreferences: SharedPreferences by lazy {
+        PreferenceManager.getDefaultSharedPreferences(application.applicationContext)
+    }
+
     fun updateUserLocation(location: Location) {
+        Log.d(TAG, "updateUserLocation")
+
         mCurrentUserLocationMutableLiveData.value = location
 
         if (mLastUpdatedUserLocationMutableLiveData.value == null) {
@@ -35,11 +45,10 @@ class MainViewModel : ViewModel() {
         }
 
         val distanceDifference = location.distanceTo(mLastUpdatedUserLocationMutableLiveData.value)
-        Log.d(TAG, "Distance: $distanceDifference")
+        Log.d(TAG, "Distance Difference: $distanceDifference")
 
         if (distanceDifference >= DISTANCE_DIFFERENCE_TO_UPDATE) {
             mLastUpdatedUserLocationMutableLiveData.value = location
-
             retrieveVenuesList(location.latitude, location.longitude, location.altitude.toInt())
         }
     }
@@ -48,7 +57,8 @@ class MainViewModel : ViewModel() {
         Log.d(TAG, "retrieveVenuesList")
 
         showLoading()
-        VenuesRepository.getVenuesWithPhotos(latitude, longitude, altitude)
+        val resultsLimit = mSharedPreferences.getInt(RESULTS_LIMIT_SHARED_PREF_KEY, 5)
+        VenuesRepository.getVenuesWithPhotos(latitude, longitude, altitude, resultsLimit)
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe({ venuesList ->
@@ -59,10 +69,6 @@ class MainViewModel : ViewModel() {
                 throwable.printStackTrace()
                 hideLoading()
             }
-    }
-
-    fun getCurrentUserLocationLiveData(): LiveData<Location> {
-        return mCurrentUserLocationMutableLiveData
     }
 
     fun getLastUpdatedUserLocationLiveData(): LiveData<Location> {
@@ -79,10 +85,6 @@ class MainViewModel : ViewModel() {
 
     fun setSelectedVenueLocationLiveData(venue: Venue?) {
         mSelectedVenueMutableLiveData.value = venue
-    }
-
-    fun clearAndHideSelectedVenueLocationLiveData() {
-        mSelectedVenueMutableLiveData.value = null
     }
 
     fun getSuccessMessageLiveData(): LiveData<CustomMessage> {
@@ -127,5 +129,7 @@ class MainViewModel : ViewModel() {
         private const val TAG = "MainViewModel"
 
         private const val DISTANCE_DIFFERENCE_TO_UPDATE = 500
+
+        private const val RESULTS_LIMIT_SHARED_PREF_KEY = "results_limit"
     }
 }

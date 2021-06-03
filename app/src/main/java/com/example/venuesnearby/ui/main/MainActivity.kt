@@ -10,12 +10,15 @@ import android.os.Bundle
 import android.os.IBinder
 import android.provider.Settings
 import android.util.Log
+import android.view.Menu
+import android.view.MenuItem
 import android.view.WindowManager
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.databinding.DataBindingUtil
 import androidx.lifecycle.ViewModelProvider
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import androidx.preference.PreferenceManager
 import com.example.venuesnearby.BR
 import com.example.venuesnearby.BuildConfig
 import com.example.venuesnearby.R
@@ -25,6 +28,7 @@ import com.example.venuesnearby.service.location.ForegroundOnlyLocationService
 import com.example.venuesnearby.ui.adapter.VenueAdapter
 import com.example.venuesnearby.ui.dialog.ErrorAlert
 import com.example.venuesnearby.ui.dialog.SuccessAlert
+import com.example.venuesnearby.ui.settings.SettingsActivity
 import com.example.venuesnearby.util.toText
 import com.google.android.gms.location.*
 import com.google.android.gms.maps.CameraUpdateFactory
@@ -35,7 +39,7 @@ import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
 import com.google.android.material.snackbar.Snackbar
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceChangeListener {
 
     private lateinit var mBinding: ActivityMainBinding
     private lateinit var mMainViewModel: MainViewModel
@@ -45,6 +49,10 @@ class MainActivity : AppCompatActivity() {
     private var mIsForegroundOnlyLocationServiceBound = false
     private var mForegroundOnlyLocationService: ForegroundOnlyLocationService? = null
     private lateinit var mForegroundOnlyBroadcastReceiver: ForegroundOnlyBroadcastReceiver
+
+    private val mSharedPreferences: SharedPreferences by lazy {
+        PreferenceManager.getDefaultSharedPreferences(applicationContext)
+    }
 
     // Monitors connection to the service
     private val mForegroundOnlyServiceConnection = object : ServiceConnection {
@@ -70,7 +78,6 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         Log.d(TAG, "onCreate")
-
         super.onCreate(savedInstanceState)
         mBinding = DataBindingUtil.setContentView(this, R.layout.activity_main)
 
@@ -85,16 +92,16 @@ class MainActivity : AppCompatActivity() {
 
     override fun onStart() {
         Log.d(TAG, "onStart")
-
         super.onStart()
 
         val serviceIntent = Intent(this@MainActivity, ForegroundOnlyLocationService::class.java)
         bindService(serviceIntent, mForegroundOnlyServiceConnection, Context.BIND_AUTO_CREATE)
+
+        mSharedPreferences.registerOnSharedPreferenceChangeListener(this)
     }
 
     override fun onResume() {
         Log.d(TAG, "onResume")
-
         super.onResume()
 
         LocalBroadcastManager.getInstance(this).registerReceiver(
@@ -107,6 +114,7 @@ class MainActivity : AppCompatActivity() {
         Log.d(TAG, "onPause")
 
         LocalBroadcastManager.getInstance(this).unregisterReceiver(mForegroundOnlyBroadcastReceiver)
+
         super.onPause()
     }
 
@@ -118,9 +126,39 @@ class MainActivity : AppCompatActivity() {
             mIsForegroundOnlyLocationServiceBound = false
         }
 
+        mSharedPreferences.unregisterOnSharedPreferenceChangeListener(this)
+
         super.onStop()
     }
 
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        menuInflater.inflate(R.menu.main_menu, menu)
+        return super.onCreateOptionsMenu(menu)
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        if (item.itemId == R.id.item_settings) {
+            val intent = Intent(this@MainActivity, SettingsActivity::class.java)
+            startActivity(intent)
+            return true
+        }
+        return super.onOptionsItemSelected(item)
+    }
+
+    override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences?, key: String?) {
+        Log.d(TAG, "onSharedPreferenceChanged")
+
+        if (key.equals(REALTIME_SHARED_PREF_KEY)) {
+            val isRealTimeMode = mSharedPreferences.getBoolean(REALTIME_SHARED_PREF_KEY, false)
+
+            if (isRealTimeMode) {
+                mForegroundOnlyLocationService?.subscribeToLocationUpdates()
+                    ?: Log.d(TAG, "Service Not Bound")
+            } else {
+                mForegroundOnlyLocationService?.unsubscribeToLocationUpdates()
+            }
+        }
+    }
 
     private fun setupRecyclerView() {
         mVenueAdapter = VenueAdapter { venue, _ ->
@@ -139,20 +177,15 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupViewModelObservations() {
-        mMainViewModel.getSuccessMessageLiveData().observe(this) { message: CustomMessage ->
-            this.showSuccessDialog(message)
-        }
-
-        mMainViewModel.getErrorMessageLiveData().observe(this) { message: CustomMessage ->
-            this.showErrorDialog(message)
-        }
+        mMainViewModel.getSuccessMessageLiveData().observe(this, this::showSuccessDialog)
+        mMainViewModel.getErrorMessageLiveData().observe(this, this::showErrorDialog)
 
         mMainViewModel.getIsContentLoadingMutableLiveData().observe(this) { isLoading ->
+            mBinding.shimmerLayout.shimmerFrameLayout.showShimmer(isLoading)
+
             if (isLoading) {
-                mBinding.shimmerLayout.shimmerFrameLayout.startShimmer()
                 disableUserInteraction()
             } else {
-                mBinding.shimmerLayout.shimmerFrameLayout.stopShimmer()
                 reEnableUserInteraction()
             }
         }
@@ -247,12 +280,10 @@ class MainActivity : AppCompatActivity() {
                 else -> {
                     // Permission denied.
                     Snackbar.make(
-                        mBinding.root,
-                        R.string.permission_denied_explanation,
+                        mBinding.root, R.string.permission_denied_explanation,
                         Snackbar.LENGTH_LONG
-                    ).setAction(R.string.settings) {
-                        openAppSettingsScreen()
-                    }
+                    )
+                        .setAction(R.string.settings) { openAppSettingsScreen() }
                         .show()
                 }
             }
@@ -302,7 +333,6 @@ class MainActivity : AppCompatActivity() {
 
             if (location != null) {
                 Log.wtf(TAG, "Foreground location Received: ${location.toText()}")
-
                 mMainViewModel.updateUserLocation(location)
             }
         }
@@ -314,5 +344,7 @@ class MainActivity : AppCompatActivity() {
 
         private const val REQUEST_FOREGROUND_ONLY_PERMISSIONS_REQUEST_CODE = 34
         private const val GOOGLE_MAP_ZOOM_PREF = 15F
+
+        private const val REALTIME_SHARED_PREF_KEY = "realtime"
     }
 }

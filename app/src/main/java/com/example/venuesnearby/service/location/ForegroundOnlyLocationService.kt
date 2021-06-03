@@ -36,7 +36,6 @@ class ForegroundOnlyLocationService : Service() {
     @SuppressLint("LongLogTag")
     override fun onCreate() {
         Log.d(TAG, "OnCreate")
-
         super.onCreate()
 
         mNotificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -44,7 +43,7 @@ class ForegroundOnlyLocationService : Service() {
 
         mLocationRequest = LocationRequest.create().apply {
             interval = TimeUnit.SECONDS.toMillis(30)
-            fastestInterval = TimeUnit.SECONDS.toMillis(10)
+            fastestInterval = TimeUnit.SECONDS.toMillis(1)
             maxWaitTime = TimeUnit.SECONDS.toMillis(30)
             priority = LocationRequest.PRIORITY_HIGH_ACCURACY
         }
@@ -127,14 +126,12 @@ class ForegroundOnlyLocationService : Service() {
     @SuppressLint("LongLogTag")
     override fun onDestroy() {
         Log.d(TAG, "onDestroy")
-
         super.onDestroy()
     }
 
     @SuppressLint("LongLogTag")
     override fun onConfigurationChanged(newConfig: Configuration) {
         Log.d(TAG, "onConfigurationChanged")
-
         super.onConfigurationChanged(newConfig)
         mIsConfigurationChange = true
     }

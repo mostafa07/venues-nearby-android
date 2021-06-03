@@ -4,9 +4,10 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.content.*
 import android.content.pm.PackageManager
+import android.location.Location
 import android.net.Uri
 import android.os.Bundle
-import android.os.Looper
+import android.os.IBinder
 import android.provider.Settings
 import android.util.Log
 import android.view.WindowManager
@@ -14,24 +15,25 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.databinding.DataBindingUtil
 import androidx.lifecycle.ViewModelProvider
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.example.venuesnearby.BR
 import com.example.venuesnearby.BuildConfig
 import com.example.venuesnearby.R
 import com.example.venuesnearby.data.model.app.CustomMessage
 import com.example.venuesnearby.databinding.ActivityMainBinding
+import com.example.venuesnearby.service.location.ForegroundOnlyLocationService
 import com.example.venuesnearby.ui.adapter.VenueAdapter
 import com.example.venuesnearby.ui.dialog.ErrorAlert
 import com.example.venuesnearby.ui.dialog.SuccessAlert
+import com.example.venuesnearby.util.toText
 import com.google.android.gms.location.*
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
-import com.google.android.gms.maps.GoogleMap.OnCameraMoveStartedListener.REASON_GESTURE
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
 import com.google.android.material.snackbar.Snackbar
-import java.util.concurrent.TimeUnit
 
 class MainActivity : AppCompatActivity() {
 
@@ -40,11 +42,35 @@ class MainActivity : AppCompatActivity() {
     private lateinit var mGoogleMap: GoogleMap
     private lateinit var mVenueAdapter: VenueAdapter
 
-    private lateinit var mFusedLocationProviderClient: FusedLocationProviderClient
-    private lateinit var locationRequest: LocationRequest
-    private lateinit var locationCallback: LocationCallback
+    private var mIsForegroundOnlyLocationServiceBound = false
+    private var mForegroundOnlyLocationService: ForegroundOnlyLocationService? = null
+    private lateinit var mForegroundOnlyBroadcastReceiver: ForegroundOnlyBroadcastReceiver
+
+    // Monitors connection to the service
+    private val mForegroundOnlyServiceConnection = object : ServiceConnection {
+
+        override fun onServiceConnected(name: ComponentName, service: IBinder) {
+            Log.d(TAG, "onServiceConnected")
+
+            val binder = service as ForegroundOnlyLocationService.LocalBinder
+            mForegroundOnlyLocationService = binder.service
+            mIsForegroundOnlyLocationServiceBound = true
+
+            initLocationData()
+        }
+
+        override fun onServiceDisconnected(name: ComponentName) {
+            Log.d(TAG, "onServiceDisconnected")
+
+            mForegroundOnlyLocationService = null
+            mIsForegroundOnlyLocationServiceBound = false
+        }
+    }
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        Log.d(TAG, "onCreate")
+
         super.onCreate(savedInstanceState)
         mBinding = DataBindingUtil.setContentView(this, R.layout.activity_main)
 
@@ -54,19 +80,52 @@ class MainActivity : AppCompatActivity() {
 
         initMap()
 
-        initLocationData()
+        mForegroundOnlyBroadcastReceiver = ForegroundOnlyBroadcastReceiver()
     }
 
-    override fun onBackPressed() {
-        mMainViewModel.clearAndHideSelectedVenueLocationLiveData()
-        val userLocation = mMainViewModel.getUserLocationLiveData().value
-        moveMapToLocation(LatLng(userLocation!!.latitude, userLocation.longitude))
+    override fun onStart() {
+        Log.d(TAG, "onStart")
+
+        super.onStart()
+
+        val serviceIntent = Intent(this@MainActivity, ForegroundOnlyLocationService::class.java)
+        bindService(serviceIntent, mForegroundOnlyServiceConnection, Context.BIND_AUTO_CREATE)
     }
+
+    override fun onResume() {
+        Log.d(TAG, "onResume")
+
+        super.onResume()
+
+        LocalBroadcastManager.getInstance(this).registerReceiver(
+            mForegroundOnlyBroadcastReceiver,
+            IntentFilter(ForegroundOnlyLocationService.ACTION_FOREGROUND_ONLY_LOCATION_BROADCAST)
+        )
+    }
+
+    override fun onPause() {
+        Log.d(TAG, "onPause")
+
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(mForegroundOnlyBroadcastReceiver)
+        super.onPause()
+    }
+
+    override fun onStop() {
+        Log.d(TAG, "onStop")
+
+        if (mIsForegroundOnlyLocationServiceBound) {
+            unbindService(mForegroundOnlyServiceConnection)
+            mIsForegroundOnlyLocationServiceBound = false
+        }
+
+        super.onStop()
+    }
+
 
     private fun setupRecyclerView() {
-        mVenueAdapter = VenueAdapter { dataItem, _ ->
-            mMainViewModel.setSelectedVenueLocationLiveData(dataItem)
-            moveMapToLocation(LatLng(dataItem.location.lat, dataItem.location.lng))
+        mVenueAdapter = VenueAdapter { venue, _ ->
+            mMainViewModel.setSelectedVenueLocationLiveData(venue)
+            moveMapToLocation(LatLng(venue.location.lat, venue.location.lng))
         }
         mBinding.venuesRecyclerView.adapter = mVenueAdapter
     }
@@ -75,7 +134,7 @@ class MainActivity : AppCompatActivity() {
         mMainViewModel = ViewModelProvider(this).get(MainViewModel::class.java)
 
         mBinding.setVariable(BR.viewModel, mMainViewModel)
-        mBinding.lifecycleOwner = this
+        mBinding.lifecycleOwner = this@MainActivity
         mBinding.executePendingBindings()
     }
 
@@ -98,7 +157,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        mMainViewModel.getUserLocationLiveData().observe(this, {
+        mMainViewModel.getLastUpdatedUserLocationLiveData().observe(this, {
             moveMapToLocation(LatLng(it.latitude, it.longitude))
         })
 
@@ -111,51 +170,15 @@ class MainActivity : AppCompatActivity() {
     private fun initMap() {
         val mapFragment =
             supportFragmentManager.findFragmentById(R.id.mapFragment) as SupportMapFragment
-        mapFragment.getMapAsync {
-            mGoogleMap = it
-
-            mGoogleMap.setOnCameraMoveStartedListener { reason ->
-                if (REASON_GESTURE == reason) {
-                    mMainViewModel.setCurrentCameraLocationLiveData(mGoogleMap.cameraPosition.target)
-                }
-            }
-        }
+        mapFragment.getMapAsync { mGoogleMap = it }
     }
 
-    @SuppressLint("MissingPermission")
     private fun initLocationData() {
-        mFusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this)
-
-        locationRequest = LocationRequest.create().apply {
-            interval = TimeUnit.SECONDS.toMillis(5)
-            fastestInterval = TimeUnit.SECONDS.toMillis(0)
-            maxWaitTime = TimeUnit.SECONDS.toMillis(10)
-            priority = LocationRequest.PRIORITY_HIGH_ACCURACY
-            numUpdates = 1
-        }
-        locationCallback = object : LocationCallback() {
-            override fun onLocationResult(locationResult: LocationResult) {
-                super.onLocationResult(locationResult)
-
-                mMainViewModel.setUserLocationLiveData(locationResult.lastLocation)
-            }
-        }
+        Log.d(TAG, "initLocationData")
 
         if (isForegroundPermissionApproved()) {
-            mFusedLocationProviderClient.lastLocation.addOnCompleteListener {
-                val location = it.result
-                if (location == null) {
-                    mFusedLocationProviderClient =
-                        LocationServices.getFusedLocationProviderClient(this)
-                    mFusedLocationProviderClient.requestLocationUpdates(
-                        locationRequest,
-                        locationCallback,
-                        Looper.getMainLooper()
-                    )
-                } else {
-                    mMainViewModel.setUserLocationLiveData(it.result)
-                }
-            }
+            mForegroundOnlyLocationService?.subscribeToLocationUpdates()
+                ?: Log.d(TAG, "Service Not Bound")
         } else {
             requestForegroundPermissions()
         }
@@ -169,7 +192,7 @@ class MainActivity : AppCompatActivity() {
                 .title(title)
                 .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))
         )
-        mGoogleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, GOOGLE_MAP_ZOOM_PREF))
+        mGoogleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, GOOGLE_MAP_ZOOM_PREF))
     }
 
     private fun isForegroundPermissionApproved(): Boolean {
@@ -209,6 +232,8 @@ class MainActivity : AppCompatActivity() {
         permissions: Array<String>,
         grantResults: IntArray
     ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+
         when (requestCode) {
             REQUEST_FOREGROUND_ONLY_PERMISSIONS_REQUEST_CODE -> when {
                 grantResults.isEmpty() -> {
@@ -217,11 +242,7 @@ class MainActivity : AppCompatActivity() {
                 }
                 grantResults[0] == PackageManager.PERMISSION_GRANTED -> {
                     // Permission was granted.
-                    mFusedLocationProviderClient.requestLocationUpdates(
-                        locationRequest,
-                        locationCallback,
-                        Looper.getMainLooper()
-                    )
+                    mForegroundOnlyLocationService?.subscribeToLocationUpdates()
                 }
                 else -> {
                     // Permission denied.
@@ -229,17 +250,16 @@ class MainActivity : AppCompatActivity() {
                         mBinding.root,
                         R.string.permission_denied_explanation,
                         Snackbar.LENGTH_LONG
-                    )
-                        .setAction(R.string.settings) {
-                            openSettingScreen()
-                        }
+                    ).setAction(R.string.settings) {
+                        openAppSettingsScreen()
+                    }
                         .show()
                 }
             }
         }
     }
 
-    private fun openSettingScreen() {
+    private fun openAppSettingsScreen() {
         // Build intent that displays the App settings screen.
         val intent = Intent().apply {
             action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
@@ -271,8 +291,27 @@ class MainActivity : AppCompatActivity() {
     }
 
 
+    private inner class ForegroundOnlyBroadcastReceiver : BroadcastReceiver() {
+
+        override fun onReceive(context: Context, intent: Intent) {
+            Log.d(TAG, " ForegroundOnlyBroadcastReceiver : onReceive")
+
+            val location = intent.getParcelableExtra<Location>(
+                ForegroundOnlyLocationService.EXTRA_LOCATION
+            )
+
+            if (location != null) {
+                Log.wtf(TAG, "Foreground location Received: ${location.toText()}")
+
+                mMainViewModel.updateUserLocation(location)
+            }
+        }
+    }
+
+
     companion object {
         private const val TAG = "MainActivity"
+
         private const val REQUEST_FOREGROUND_ONLY_PERMISSIONS_REQUEST_CODE = 34
         private const val GOOGLE_MAP_ZOOM_PREF = 15F
     }

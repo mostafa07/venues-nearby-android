@@ -1,6 +1,7 @@
 package com.example.venuesnearby.ui.main
 
 import android.location.Location
+import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -9,14 +10,14 @@ import com.example.venuesnearby.data.model.Venue
 import com.example.venuesnearby.data.model.app.CustomMessage
 import com.example.venuesnearby.data.repository.VenuesRepository
 import com.example.venuesnearby.exception.BusinessException
-import com.google.android.gms.maps.model.LatLng
 import rx.android.schedulers.AndroidSchedulers
 import rx.schedulers.Schedulers
 
 class MainViewModel : ViewModel() {
 
-    private val mUserLocationMutableLiveData: MutableLiveData<Location> = MutableLiveData()
-    private val mCurrentCameraLocationMutableLiveData: MutableLiveData<LatLng> = MutableLiveData()
+    private val mCurrentUserLocationMutableLiveData: MutableLiveData<Location> = MutableLiveData()
+    private val mLastUpdatedUserLocationMutableLiveData: MutableLiveData<Location> = MutableLiveData()
+
     private val mVenuesListMutableLiveData: MutableLiveData<List<Venue>> = MutableLiveData()
     private val mSelectedVenueMutableLiveData: MutableLiveData<Venue?> = MutableLiveData(null)
 
@@ -24,8 +25,28 @@ class MainViewModel : ViewModel() {
     private val mErrorMessageMutableLiveData: MutableLiveData<CustomMessage> = MutableLiveData()
     private val mIsContentLoadingMutableLiveData: MutableLiveData<Boolean> = MutableLiveData(true)
 
+    fun updateUserLocation(location: Location) {
+        mCurrentUserLocationMutableLiveData.value = location
+
+        if (mLastUpdatedUserLocationMutableLiveData.value == null) {
+            mLastUpdatedUserLocationMutableLiveData.value = location
+            retrieveVenuesList(location.latitude, location.longitude, location.altitude.toInt())
+            return
+        }
+
+        val distanceDifference = location.distanceTo(mLastUpdatedUserLocationMutableLiveData.value)
+        Log.d(TAG, "Distance: $distanceDifference")
+
+        if (distanceDifference >= DISTANCE_DIFFERENCE_TO_UPDATE) {
+            mLastUpdatedUserLocationMutableLiveData.value = location
+
+            retrieveVenuesList(location.latitude, location.longitude, location.altitude.toInt())
+        }
+    }
 
     private fun retrieveVenuesList(latitude: Double, longitude: Double, altitude: Int) {
+        Log.d(TAG, "retrieveVenuesList")
+
         showLoading()
         VenuesRepository.getVenuesWithPhotos(latitude, longitude, altitude)
             .subscribeOn(Schedulers.io())
@@ -40,29 +61,12 @@ class MainViewModel : ViewModel() {
             }
     }
 
-
-    fun getUserLocationLiveData(): LiveData<Location> {
-        return mUserLocationMutableLiveData
+    fun getCurrentUserLocationLiveData(): LiveData<Location> {
+        return mCurrentUserLocationMutableLiveData
     }
 
-    fun setUserLocationLiveData(location: Location) {
-        mUserLocationMutableLiveData.value = location
-
-        retrieveVenuesList(
-            mUserLocationMutableLiveData.value!!.latitude,
-            mUserLocationMutableLiveData.value!!.longitude,
-            mUserLocationMutableLiveData.value!!.altitude.toInt()
-        )
-    }
-
-    fun getCurrentCameraLocationLiveData(): LiveData<LatLng> {
-        return mCurrentCameraLocationMutableLiveData
-    }
-
-    fun setCurrentCameraLocationLiveData(latLng: LatLng) {
-        mCurrentCameraLocationMutableLiveData.value = latLng
-
-        retrieveVenuesList(latLng.latitude, latLng.longitude, 0)
+    fun getLastUpdatedUserLocationLiveData(): LiveData<Location> {
+        return mLastUpdatedUserLocationMutableLiveData
     }
 
     fun getVenuesListLiveData(): LiveData<List<Venue>> {
@@ -121,5 +125,7 @@ class MainViewModel : ViewModel() {
 
     companion object {
         private const val TAG = "MainViewModel"
+
+        private const val DISTANCE_DIFFERENCE_TO_UPDATE = 500
     }
 }

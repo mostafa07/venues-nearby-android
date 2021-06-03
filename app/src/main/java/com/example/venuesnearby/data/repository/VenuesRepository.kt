@@ -6,8 +6,6 @@ import com.example.venuesnearby.data.model.Venue
 import com.example.venuesnearby.webservice.VenuesWebService
 import com.example.venuesnearby.webservice.builder.RetrofitServiceBuilder
 import rx.Observable
-import rx.android.schedulers.AndroidSchedulers
-import rx.schedulers.Schedulers
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -30,8 +28,9 @@ object VenuesRepository {
         altitude: Int
     ): Observable<List<Venue>> {
         return searchVenues(latitude, longitude, altitude)
-                // FIXME:   The photos API is a premium Foursquare feature;
-                //      Just uncomment this block to test it out
+        // FIXME:   The photos API is a premium Foursquare feature;
+        //      Just uncomment this block to test it out
+
 //            .flatMapIterable {
 //                it
 //            }
@@ -44,8 +43,8 @@ object VenuesRepository {
 //                    }
 //            }
 //            .toList()
-            .subscribeOn(Schedulers.io())
-            .observeOn(AndroidSchedulers.mainThread())
+//            .subscribeOn(Schedulers.io())
+//            .observeOn(AndroidSchedulers.mainThread())
     }
 
 
@@ -65,9 +64,7 @@ object VenuesRepository {
             versionDate,
             BuildConfig.FOURSQUARE_CLIENT_ID,
             BuildConfig.FOURSQUARE_CLIENT_SECRET
-        ).subscribeOn(Schedulers.io())
-            .observeOn(Schedulers.io())
-            .map { it.response.venues }
+        ).map { it.response.venues }
     }
 
     private fun getVenuePhotos(venueId: String): Observable<List<Photo>> {
@@ -79,8 +76,6 @@ object VenuesRepository {
             offset = null,
             clientId = BuildConfig.FOURSQUARE_CLIENT_ID,
             clientSecret = BuildConfig.FOURSQUARE_CLIENT_SECRET
-        ).subscribeOn(Schedulers.io())
-            .observeOn(Schedulers.io())
-            .map { it.response.photos.items }
+        ).map { it.response.photos.items }
     }
 }

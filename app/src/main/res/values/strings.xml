@@ -37,4 +37,6 @@
     <!-- Venues List Preferences -->
     <string name="results_limit_title">Results Limit</string>
     <string name="results_limit_summary">Number of venues results to retrieve per request</string>
+
+    <string name="no_venues_available">No Venues Available</string>
 </resources>

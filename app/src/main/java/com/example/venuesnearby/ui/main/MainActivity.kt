@@ -26,8 +26,6 @@ import com.example.venuesnearby.data.model.app.CustomMessage
 import com.example.venuesnearby.databinding.ActivityMainBinding
 import com.example.venuesnearby.service.location.ForegroundOnlyLocationService
 import com.example.venuesnearby.ui.adapter.VenueAdapter
-import com.example.venuesnearby.ui.dialog.ErrorAlert
-import com.example.venuesnearby.ui.dialog.SuccessAlert
 import com.example.venuesnearby.ui.settings.SettingsActivity
 import com.example.venuesnearby.util.toText
 import com.google.android.gms.location.*
@@ -177,9 +175,8 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
     }
 
     private fun setupViewModelObservations() {
-        mMainViewModel.getSuccessMessageLiveData().observe(this, this::showSuccessDialog)
-        mMainViewModel.getErrorMessageLiveData().observe(this, this::showErrorDialog)
-
+        mMainViewModel.getSuccessMessageLiveData().observe(this, { showSnackbar(it, true) })
+        mMainViewModel.getErrorMessageLiveData().observe(this, { showSnackbar(it, false) })
         mMainViewModel.getIsContentLoadingMutableLiveData().observe(this) { isLoading ->
             mBinding.shimmerLayout.shimmerFrameLayout.showShimmer(isLoading)
 
@@ -192,6 +189,7 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
 
         mMainViewModel.getLastUpdatedUserLocationLiveData().observe(this, {
             moveMapToLocation(LatLng(it.latitude, it.longitude))
+            mMainViewModel.clearAndHideSelectedVenueLocationLiveData()
         })
 
         mMainViewModel.getVenuesListLiveData().observe(this, {
@@ -311,16 +309,18 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
         window.clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE)
     }
 
-    private fun showSuccessDialog(message: CustomMessage) {
-        val successAlert = SuccessAlert(this, message)
-        successAlert.show()
-    }
+    private fun showSnackbar(message: CustomMessage, successFlag: Boolean) {
+        val messageString = getString(message.messageResourceId, message.params)
 
-    private fun showErrorDialog(message: CustomMessage) {
-        val errorAlert = ErrorAlert(this, message)
-        errorAlert.show()
+        Snackbar.make(mBinding.root, messageString, Snackbar.LENGTH_LONG)
+            .setBackgroundTint(
+                resources.getColor(
+                    if (successFlag) android.R.color.holo_green_dark else android.R.color.holo_red_dark
+                )
+            )
+            .setTextColor(resources.getColor(android.R.color.white))
+            .show()
     }
-
 
     private inner class ForegroundOnlyBroadcastReceiver : BroadcastReceiver() {
 

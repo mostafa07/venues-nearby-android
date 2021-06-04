@@ -13,7 +13,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:padding="16dp"
-        app:shown="@{viewModel.venuesListLiveData.empty}">
+        app:shown="@{!viewModel.isContentLoadingMutableLiveData &amp;&amp; viewModel.venuesListLiveData.empty}">
 
         <androidx.appcompat.widget.AppCompatImageView
             android:id="@+id/venue_image_view"

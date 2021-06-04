@@ -19,8 +19,7 @@ import rx.schedulers.Schedulers
 class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val mCurrentUserLocationMutableLiveData: MutableLiveData<Location> = MutableLiveData()
-    private val mLastUpdatedUserLocationMutableLiveData: MutableLiveData<Location> =
-        MutableLiveData()
+    private val mLastUpdatedUserLocationMutableLiveData: MutableLiveData<Location> = MutableLiveData()
 
     private val mVenuesListMutableLiveData: MutableLiveData<List<Venue>> = MutableLiveData()
     private val mSelectedVenueMutableLiveData: MutableLiveData<Venue?> = MutableLiveData(null)
@@ -70,6 +69,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 hideLoading()
             }
     }
+
+    fun clearAndHideSelectedVenueLocationLiveData() {
+        mSelectedVenueMutableLiveData.value = null
+    }
+
 
     fun getLastUpdatedUserLocationLiveData(): LiveData<Location> {
         return mLastUpdatedUserLocationMutableLiveData

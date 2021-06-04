@@ -80,9 +80,6 @@ dependencies {
     implementation 'com.github.bumptech.glide:glide:4.12.0'
     kapt 'com.github.bumptech.glide:compiler:4.12.0'
 
-    // Rounded ImageView
-    implementation 'com.makeramen:roundedimageview:2.3.0'
-
     // Shimmer Effect Layout
     implementation 'com.facebook.shimmer:shimmer:0.5.0@aar'
 

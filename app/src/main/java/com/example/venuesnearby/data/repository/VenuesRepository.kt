@@ -15,7 +15,6 @@ object VenuesRepository {
 
     private const val RADIUS = 500
     private const val CATEGORY_ID = "4d4b7105d754a06374d81259"
-//    private const val LIMIT = 10
     private const val DATE_FORMAT = "yyyyMMdd"
 
     private val mVenuesWebService: VenuesWebService =
@@ -29,23 +28,17 @@ object VenuesRepository {
         limit: Int
     ): Observable<List<Venue>> {
         return searchVenues(latitude, longitude, altitude, limit)
-        // FIXME:   The photos API is a premium Foursquare feature;
-        //      Just uncomment this block to test it out
-
-//            .flatMapIterable {
-//                it
-//            }
-//            .flatMap {
-//                    venue ->
-//                getVenuePhotos(venue.id)
-//                    .map { retrievedPhotos ->
-//                        venue.photos = retrievedPhotos
-//                        return@map venue
-//                    }
-//            }
-//            .toList()
-//            .subscribeOn(Schedulers.io())
-//            .observeOn(AndroidSchedulers.mainThread())
+            .flatMapIterable {
+                it
+            }
+            .flatMap { venue ->
+                getVenuePhotos(venue.id)
+                    .map { retrievedPhotos ->
+                        venue.photos = retrievedPhotos
+                        return@map venue
+                    }
+            }
+            .toList()
     }
 
 
@@ -74,7 +67,6 @@ object VenuesRepository {
             venueId = venueId,
             version = SimpleDateFormat(DATE_FORMAT).format(Date()),
             group = null,
-            // TODO test and see whether to set to 1 or not
             limit = 1,
             offset = null,
             clientId = BuildConfig.FOURSQUARE_CLIENT_ID,

@@ -170,7 +170,9 @@ class MainActivity : AppCompatActivity() {
         }
 
         mMainViewModel.getLastUpdatedUserLocationLiveData().observe(this, {
-            moveMapToLocation(LatLng(it.latitude, it.longitude))
+            if (::mGoogleMap.isInitialized) {
+                moveMapToLocation(LatLng(it.latitude, it.longitude))
+            }
             mMainViewModel.clearAndHideSelectedVenueLocationLiveData()
         })
 

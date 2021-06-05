@@ -137,10 +137,19 @@ class ForegroundOnlyLocationService : Service() {
     }
 
     @SuppressLint("LongLogTag")
-    fun subscribeToLocationUpdates() {
+    fun subscribeToLocationUpdates(isRealtimeMode: Boolean) {
         Log.d(TAG, "SubscribeToLocationUpdates")
 
         startService(Intent(applicationContext, ForegroundOnlyLocationService::class.java))
+
+        mLocationRequest = LocationRequest.create().apply {
+            interval = TimeUnit.SECONDS.toMillis(30)
+            fastestInterval = TimeUnit.SECONDS.toMillis(1)
+            maxWaitTime = TimeUnit.SECONDS.toMillis(30)
+            priority = LocationRequest.PRIORITY_HIGH_ACCURACY
+
+            if (!isRealtimeMode) numUpdates = 1
+        }
 
         try {
             mFusedLocationProviderClient.requestLocationUpdates(

@@ -37,7 +37,7 @@ import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
 import com.google.android.material.snackbar.Snackbar
 
-class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceChangeListener {
+class MainActivity : AppCompatActivity() {
 
     private lateinit var mBinding: ActivityMainBinding
     private lateinit var mMainViewModel: MainViewModel
@@ -94,8 +94,6 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
 
         val serviceIntent = Intent(this@MainActivity, ForegroundOnlyLocationService::class.java)
         bindService(serviceIntent, mForegroundOnlyServiceConnection, Context.BIND_AUTO_CREATE)
-
-        mSharedPreferences.registerOnSharedPreferenceChangeListener(this)
     }
 
     override fun onResume() {
@@ -124,8 +122,6 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
             mIsForegroundOnlyLocationServiceBound = false
         }
 
-        mSharedPreferences.unregisterOnSharedPreferenceChangeListener(this)
-
         super.onStop()
     }
 
@@ -143,20 +139,6 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
         return super.onOptionsItemSelected(item)
     }
 
-    override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences?, key: String?) {
-        Log.d(TAG, "onSharedPreferenceChanged")
-
-        if (key.equals(REALTIME_SHARED_PREF_KEY)) {
-            val isRealTimeMode = mSharedPreferences.getBoolean(REALTIME_SHARED_PREF_KEY, false)
-
-            if (isRealTimeMode) {
-                mForegroundOnlyLocationService?.subscribeToLocationUpdates()
-                    ?: Log.d(TAG, "Service Not Bound")
-            } else {
-                mForegroundOnlyLocationService?.unsubscribeToLocationUpdates()
-            }
-        }
-    }
 
     private fun setupRecyclerView() {
         mVenueAdapter = VenueAdapter { venue, _ ->
@@ -208,8 +190,7 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
         Log.d(TAG, "initLocationData")
 
         if (isForegroundPermissionApproved()) {
-            mForegroundOnlyLocationService?.subscribeToLocationUpdates()
-                ?: Log.d(TAG, "Service Not Bound")
+            subscribeToLocationUpdatesBasedOnMode()
         } else {
             requestForegroundPermissions()
         }
@@ -273,7 +254,7 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
                 }
                 grantResults[0] == PackageManager.PERMISSION_GRANTED -> {
                     // Permission was granted.
-                    mForegroundOnlyLocationService?.subscribeToLocationUpdates()
+                    subscribeToLocationUpdatesBasedOnMode()
                 }
                 else -> {
                     // Permission denied.
@@ -286,6 +267,12 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
                 }
             }
         }
+    }
+
+    private fun subscribeToLocationUpdatesBasedOnMode() {
+        val isRealTimeMode = mSharedPreferences.getBoolean(REALTIME_SHARED_PREF_KEY, false)
+        mForegroundOnlyLocationService?.subscribeToLocationUpdates(isRealTimeMode)
+            ?: Log.d(TAG, "Service Not Bound")
     }
 
     private fun openAppSettingsScreen() {

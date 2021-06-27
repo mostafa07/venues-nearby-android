@@ -18,36 +18,55 @@ import rx.schedulers.Schedulers
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val mCurrentUserLocationMutableLiveData: MutableLiveData<Location> = MutableLiveData()
-    private val mLastUpdatedUserLocationMutableLiveData: MutableLiveData<Location> = MutableLiveData()
+    private val _currentUserLocation: MutableLiveData<Location> = MutableLiveData()
+    private val _lastUpdatedUserLocation: MutableLiveData<Location> = MutableLiveData()
+    val lastUpdatedUserLocation: LiveData<Location>
+        get() = _lastUpdatedUserLocation
 
-    private val mVenuesListMutableLiveData: MutableLiveData<List<Venue>> = MutableLiveData()
-    private val mSelectedVenueMutableLiveData: MutableLiveData<Venue?> = MutableLiveData(null)
+    private val _venuesList: MutableLiveData<List<Venue>> = MutableLiveData()
+    val venuesList: LiveData<List<Venue>>
+        get() = _venuesList
 
-    private val mSuccessMessageMutableLiveData: MutableLiveData<CustomMessage> = MutableLiveData()
-    private val mErrorMessageMutableLiveData: MutableLiveData<CustomMessage> = MutableLiveData()
-    private val mIsContentLoadingMutableLiveData: MutableLiveData<Boolean> = MutableLiveData(true)
+    private val _selectedVenue: MutableLiveData<Venue> = MutableLiveData()
+    val selectedVenue: LiveData<Venue>
+        get() = _selectedVenue
+
+    private val _successMessage: MutableLiveData<CustomMessage> = MutableLiveData()
+    val successMessage: LiveData<CustomMessage>
+        get() = _successMessage
+
+    private val _errorMessage: MutableLiveData<CustomMessage> = MutableLiveData()
+    val errorMessage: LiveData<CustomMessage>
+        get() = _errorMessage
+
+    private val _isContentLoading: MutableLiveData<Boolean> = MutableLiveData()
+    val isContentLoading: LiveData<Boolean>
+        get() = _isContentLoading
 
     private val mSharedPreferences: SharedPreferences by lazy {
         PreferenceManager.getDefaultSharedPreferences(application.applicationContext)
     }
 
+    init {
+        _isContentLoading.value = true
+    }
+
     fun updateUserLocation(location: Location) {
         Log.d(TAG, "updateUserLocation")
 
-        mCurrentUserLocationMutableLiveData.value = location
+        _currentUserLocation.value = location
 
-        if (mLastUpdatedUserLocationMutableLiveData.value == null) {
-            mLastUpdatedUserLocationMutableLiveData.value = location
+        if (_lastUpdatedUserLocation.value == null) {
+            _lastUpdatedUserLocation.value = location
             retrieveVenuesList(location.latitude, location.longitude, location.altitude.toInt())
             return
         }
 
-        val distanceDifference = location.distanceTo(mLastUpdatedUserLocationMutableLiveData.value)
+        val distanceDifference = location.distanceTo(_lastUpdatedUserLocation.value)
         Log.d(TAG, "Distance Difference: $distanceDifference")
 
         if (distanceDifference >= DISTANCE_DIFFERENCE_TO_UPDATE) {
-            mLastUpdatedUserLocationMutableLiveData.value = location
+            _lastUpdatedUserLocation.value = location
             retrieveVenuesList(location.latitude, location.longitude, location.altitude.toInt())
         }
     }
@@ -61,50 +80,28 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe({ venuesList ->
-                mVenuesListMutableLiveData.value = venuesList.sortedBy { it.location.distance }
+                _venuesList.value = venuesList.sortedBy { it.location.distance }
                 hideLoading()
             }) { throwable ->
                 setErrorMessage(throwable)
-                throwable.printStackTrace()
                 hideLoading()
             }
     }
 
-    fun clearAndHideSelectedVenueLocationLiveData() {
-        mSelectedVenueMutableLiveData.value = null
+    fun clearAndHideSelectedVenue() {
+        _selectedVenue.value = null
     }
 
-
-    fun getLastUpdatedUserLocationLiveData(): LiveData<Location> {
-        return mLastUpdatedUserLocationMutableLiveData
-    }
-
-    fun getVenuesListLiveData(): LiveData<List<Venue>> {
-        return mVenuesListMutableLiveData
-    }
-
-    fun getSelectedVenueLiveData(): LiveData<Venue?> {
-        return mSelectedVenueMutableLiveData
-    }
-
-    fun setSelectedVenueLocationLiveData(venue: Venue?) {
-        mSelectedVenueMutableLiveData.value = venue
-    }
-
-    fun getSuccessMessageLiveData(): LiveData<CustomMessage> {
-        return mSuccessMessageMutableLiveData
+    fun setSelectedVenue(venue: Venue) {
+        _selectedVenue.value = venue
     }
 
     private fun setSuccessMessage(message: CustomMessage) {
-        mSuccessMessageMutableLiveData.value = message
-    }
-
-    fun getErrorMessageLiveData(): LiveData<CustomMessage> {
-        return mErrorMessageMutableLiveData
+        _successMessage.value = message
     }
 
     private fun setErrorMessage(errorMessage: CustomMessage) {
-        mErrorMessageMutableLiveData.value = errorMessage
+        _errorMessage.value = errorMessage
     }
 
     private fun setErrorMessage(t: Throwable) {
@@ -116,16 +113,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun getIsContentLoadingMutableLiveData(): LiveData<Boolean> {
-        return mIsContentLoadingMutableLiveData
-    }
-
     private fun showLoading() {
-        mIsContentLoadingMutableLiveData.value = true
+        _isContentLoading.value = true
     }
 
     private fun hideLoading() {
-        mIsContentLoadingMutableLiveData.value = false
+        _isContentLoading.value = false
     }
 
 

@@ -36,7 +36,7 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            app:shown="@{viewModel.selectedVenueLiveData != null}"
+            app:shown="@{viewModel.selectedVenue != null}"
             app:viewModel="@{viewModel}" />
 
         <androidx.constraintlayout.widget.Guideline
@@ -78,7 +78,7 @@
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
-                app:shown="@{!viewModel.isContentLoadingMutableLiveData}"
+                app:shown="@{!viewModel.isContentLoading}"
                 tools:listitem="@layout/item_venue" />
 
         </androidx.constraintlayout.widget.ConstraintLayout>

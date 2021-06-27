@@ -41,12 +41,12 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var mBinding: ActivityMainBinding
     private lateinit var mMainViewModel: MainViewModel
-    private lateinit var mGoogleMap: GoogleMap
     private lateinit var mVenueAdapter: VenueAdapter
+    private var mGoogleMap: GoogleMap? = null
 
     private var mIsForegroundOnlyLocationServiceBound = false
     private var mForegroundOnlyLocationService: ForegroundOnlyLocationService? = null
-    private lateinit var mForegroundOnlyBroadcastReceiver: ForegroundOnlyBroadcastReceiver
+    private var mForegroundOnlyBroadcastReceiver: ForegroundOnlyBroadcastReceiver? = null
 
     private val mSharedPreferences: SharedPreferences by lazy {
         PreferenceManager.getDefaultSharedPreferences(applicationContext)
@@ -101,7 +101,7 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
 
         LocalBroadcastManager.getInstance(this).registerReceiver(
-            mForegroundOnlyBroadcastReceiver,
+            mForegroundOnlyBroadcastReceiver!!,
             IntentFilter(ForegroundOnlyLocationService.ACTION_FOREGROUND_ONLY_LOCATION_BROADCAST)
         )
     }
@@ -109,7 +109,8 @@ class MainActivity : AppCompatActivity() {
     override fun onPause() {
         Log.d(TAG, "onPause")
 
-        LocalBroadcastManager.getInstance(this).unregisterReceiver(mForegroundOnlyBroadcastReceiver)
+        LocalBroadcastManager.getInstance(this)
+            .unregisterReceiver(mForegroundOnlyBroadcastReceiver!!)
 
         super.onPause()
     }
@@ -142,7 +143,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupRecyclerView() {
         mVenueAdapter = VenueAdapter { venue, _ ->
-            mMainViewModel.setSelectedVenueLocationLiveData(venue)
+            mMainViewModel.setSelectedVenue(venue)
             moveMapToLocation(LatLng(venue.location.lat, venue.location.lng))
         }
         mBinding.venuesRecyclerView.adapter = mVenueAdapter
@@ -156,10 +157,11 @@ class MainActivity : AppCompatActivity() {
         mBinding.executePendingBindings()
     }
 
+
     private fun setupViewModelObservations() {
-        mMainViewModel.getSuccessMessageLiveData().observe(this, { showSnackbar(it, true) })
-        mMainViewModel.getErrorMessageLiveData().observe(this, { showSnackbar(it, false) })
-        mMainViewModel.getIsContentLoadingMutableLiveData().observe(this) { isLoading ->
+        mMainViewModel.successMessage.observe(this, { showSnackbar(it, true) })
+        mMainViewModel.errorMessage.observe(this, { showSnackbar(it, false) })
+        mMainViewModel.isContentLoading.observe(this) { isLoading ->
             mBinding.shimmerLayout.shimmerFrameLayout.showShimmer(isLoading)
 
             if (isLoading) {
@@ -169,14 +171,12 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        mMainViewModel.getLastUpdatedUserLocationLiveData().observe(this, {
-            if (::mGoogleMap.isInitialized) {
-                moveMapToLocation(LatLng(it.latitude, it.longitude))
-            }
-            mMainViewModel.clearAndHideSelectedVenueLocationLiveData()
+        mMainViewModel.lastUpdatedUserLocation.observe(this, {
+            moveMapToLocation(LatLng(it.latitude, it.longitude))
+            mMainViewModel.clearAndHideSelectedVenue()
         })
 
-        mMainViewModel.getVenuesListLiveData().observe(this, {
+        mMainViewModel.venuesList.observe(this, {
             mVenueAdapter.dataList = it
             mBinding.venuesRecyclerView.smoothScrollToPosition(0)
         })
@@ -199,14 +199,14 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun moveMapToLocation(latLng: LatLng, title: String = "") {
-        mGoogleMap.clear()
-        mGoogleMap.addMarker(
+        mGoogleMap?.clear()
+        mGoogleMap?.addMarker(
             MarkerOptions()
                 .position(latLng)
                 .title(title)
                 .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))
         )
-        mGoogleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, GOOGLE_MAP_ZOOM_PREF))
+        mGoogleMap?.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, GOOGLE_MAP_ZOOM_PREF))
     }
 
     private fun isForegroundPermissionApproved(): Boolean {
@@ -320,10 +320,8 @@ class MainActivity : AppCompatActivity() {
                 ForegroundOnlyLocationService.EXTRA_LOCATION
             )
 
-            if (location != null) {
-                Log.wtf(TAG, "Foreground location Received: ${location.toText()}")
-                mMainViewModel.updateUserLocation(location)
-            }
+            Log.wtf(TAG, "Foreground location Received: ${location.toText()}")
+            location?.let { mMainViewModel.updateUserLocation(it) }
         }
     }
 

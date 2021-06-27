@@ -28,17 +28,18 @@ object VenuesRepository {
         limit: Int
     ): Observable<List<Venue>> {
         return searchVenues(latitude, longitude, altitude, limit)
-            .flatMapIterable {
-                it
-            }
-            .flatMap { venue ->
-                getVenuePhotos(venue.id)
-                    .map { retrievedPhotos ->
-                        venue.photos = retrievedPhotos
-                        return@map venue
-                    }
-            }
-            .toList()
+//        return searchVenues(latitude, longitude, altitude, limit)
+//            .flatMapIterable {
+//                it
+//            }
+//            .flatMap { venue ->
+//                getVenuePhotos(venue.id)
+//                    .map { retrievedPhotos ->
+//                        venue.photos = retrievedPhotos
+//                        return@map venue
+//                    }
+//            }
+//            .toList()
     }
 
 

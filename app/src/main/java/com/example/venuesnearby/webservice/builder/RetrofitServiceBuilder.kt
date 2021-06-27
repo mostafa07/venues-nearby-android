@@ -1,41 +1,35 @@
-package com.example.venuesnearby.webservice.builder;
+package com.example.venuesnearby.webservice.builder
 
-import com.google.gson.GsonBuilder;
+import com.google.gson.GsonBuilder
+import okhttp3.OkHttpClient
+import okhttp3.logging.HttpLoggingInterceptor
+import retrofit2.Retrofit
+import retrofit2.adapter.rxjava.RxJavaCallAdapterFactory
+import retrofit2.converter.gson.GsonConverterFactory
+import timber.log.Timber
+import java.util.concurrent.TimeUnit
 
-import java.util.concurrent.TimeUnit;
+object RetrofitServiceBuilder {
 
-import okhttp3.OkHttpClient;
-import okhttp3.logging.HttpLoggingInterceptor;
-import retrofit2.Retrofit;
-import retrofit2.adapter.rxjava.RxJavaCallAdapterFactory;
-import retrofit2.converter.gson.GsonConverterFactory;
-import timber.log.Timber;
+    private const val FOURSQUARE_BASE_URL = "https://api.foursquare.com/v2/"
 
-public class RetrofitServiceBuilder {
+    fun <S> buildService(serviceType: Class<S>?): S {
+        val loggingInterceptor =
+            HttpLoggingInterceptor { Timber.d(it) }
+                .setLevel(HttpLoggingInterceptor.Level.BODY)
 
-    private static final String FOURSQUARE_BASE_URL = "https://api.foursquare.com/v2/";
+        val sOkHttpClientBuilder: OkHttpClient.Builder = OkHttpClient.Builder()
+            .connectTimeout(15, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .writeTimeout(30, TimeUnit.SECONDS)
+            .addInterceptor(loggingInterceptor)
 
-    private static OkHttpClient.Builder sOkHttpClientBuilder;
-
-    static {
-        final HttpLoggingInterceptor loggingInterceptor = new HttpLoggingInterceptor(Timber::d)
-                .setLevel(HttpLoggingInterceptor.Level.BODY);
-
-        sOkHttpClientBuilder = new OkHttpClient.Builder()
-                .connectTimeout(15, TimeUnit.SECONDS)
-                .readTimeout(30, TimeUnit.SECONDS)
-                .writeTimeout(30, TimeUnit.SECONDS)
-                .addInterceptor(loggingInterceptor);
-    }
-
-    public static <S> S buildService(Class<S> serviceType) {
-        return new Retrofit.Builder()
-                .baseUrl(FOURSQUARE_BASE_URL)
-                .addConverterFactory(GsonConverterFactory.create(new GsonBuilder().create()))
-                .addCallAdapterFactory(RxJavaCallAdapterFactory.create())
-                .client(sOkHttpClientBuilder.build())
-                .build()
-                .create(serviceType);
+        return Retrofit.Builder()
+            .baseUrl(FOURSQUARE_BASE_URL)
+            .addConverterFactory(GsonConverterFactory.create(GsonBuilder().create()))
+            .addCallAdapterFactory(RxJavaCallAdapterFactory.create())
+            .client(sOkHttpClientBuilder.build())
+            .build()
+            .create(serviceType)
     }
 }
-

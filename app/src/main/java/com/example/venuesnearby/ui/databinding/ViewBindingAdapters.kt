@@ -1,13 +1,9 @@
-package com.example.venuesnearby.ui.databinding;
+package com.example.venuesnearby.ui.databinding
 
-import android.view.View;
+import android.view.View
+import androidx.databinding.BindingAdapter
 
-import androidx.databinding.BindingAdapter;
-
-public class ViewBindingAdapters {
-
-    @BindingAdapter("shown")
-    public static void showOrGone(View view, boolean show) {
-        view.setVisibility(show ? View.VISIBLE : View.GONE);
-    }
+@BindingAdapter("shown")
+fun showOrGone(view: View, show: Boolean) {
+    view.visibility = if (show) View.VISIBLE else View.GONE
 }

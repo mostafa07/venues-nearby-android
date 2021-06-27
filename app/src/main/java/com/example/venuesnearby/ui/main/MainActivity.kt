@@ -9,7 +9,6 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.IBinder
 import android.provider.Settings
-import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.view.WindowManager
@@ -36,6 +35,7 @@ import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
 import com.google.android.material.snackbar.Snackbar
+import timber.log.Timber
 
 class MainActivity : AppCompatActivity() {
 
@@ -56,7 +56,7 @@ class MainActivity : AppCompatActivity() {
     private val mForegroundOnlyServiceConnection = object : ServiceConnection {
 
         override fun onServiceConnected(name: ComponentName, service: IBinder) {
-            Log.d(TAG, "onServiceConnected")
+            Timber.d("onServiceConnected")
 
             val binder = service as ForegroundOnlyLocationService.LocalBinder
             mForegroundOnlyLocationService = binder.service
@@ -66,7 +66,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         override fun onServiceDisconnected(name: ComponentName) {
-            Log.d(TAG, "onServiceDisconnected")
+            Timber.d("onServiceDisconnected")
 
             mForegroundOnlyLocationService = null
             mIsForegroundOnlyLocationServiceBound = false
@@ -75,7 +75,7 @@ class MainActivity : AppCompatActivity() {
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        Log.d(TAG, "onCreate")
+        Timber.d("onCreate")
         super.onCreate(savedInstanceState)
         mBinding = DataBindingUtil.setContentView(this, R.layout.activity_main)
 
@@ -89,7 +89,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onStart() {
-        Log.d(TAG, "onStart")
+        Timber.d("onStart")
         super.onStart()
 
         val serviceIntent = Intent(this@MainActivity, ForegroundOnlyLocationService::class.java)
@@ -97,7 +97,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onResume() {
-        Log.d(TAG, "onResume")
+        Timber.d("onResume")
         super.onResume()
 
         LocalBroadcastManager.getInstance(this).registerReceiver(
@@ -107,7 +107,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onPause() {
-        Log.d(TAG, "onPause")
+        Timber.d("onPause")
 
         LocalBroadcastManager.getInstance(this)
             .unregisterReceiver(mForegroundOnlyBroadcastReceiver!!)
@@ -116,7 +116,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onStop() {
-        Log.d(TAG, "onStop")
+        Timber.d("onStop")
 
         if (mIsForegroundOnlyLocationServiceBound) {
             unbindService(mForegroundOnlyServiceConnection)
@@ -189,7 +189,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun initLocationData() {
-        Log.d(TAG, "initLocationData")
+        Timber.d("initLocationData")
 
         if (isForegroundPermissionApproved()) {
             subscribeToLocationUpdatesBasedOnMode()
@@ -252,7 +252,7 @@ class MainActivity : AppCompatActivity() {
             REQUEST_FOREGROUND_ONLY_PERMISSIONS_REQUEST_CODE -> when {
                 grantResults.isEmpty() -> {
                     // If user interaction was interrupted, the permission request is cancelled and you receive empty arrays.
-                    Log.d(TAG, "User interaction was cancelled.")
+                    Timber.d("User interaction was cancelled.")
                 }
                 grantResults[0] == PackageManager.PERMISSION_GRANTED -> {
                     // Permission was granted.
@@ -274,7 +274,7 @@ class MainActivity : AppCompatActivity() {
     private fun subscribeToLocationUpdatesBasedOnMode() {
         val isRealTimeMode = mSharedPreferences.getBoolean(REALTIME_SHARED_PREF_KEY, false)
         mForegroundOnlyLocationService?.subscribeToLocationUpdates(isRealTimeMode)
-            ?: Log.d(TAG, "Service Not Bound")
+            ?: Timber.d("Service Not Bound")
     }
 
     private fun openAppSettingsScreen() {
@@ -314,21 +314,19 @@ class MainActivity : AppCompatActivity() {
     private inner class ForegroundOnlyBroadcastReceiver : BroadcastReceiver() {
 
         override fun onReceive(context: Context, intent: Intent) {
-            Log.d(TAG, " ForegroundOnlyBroadcastReceiver : onReceive")
+            Timber.d(" ForegroundOnlyBroadcastReceiver : onReceive")
 
             val location = intent.getParcelableExtra<Location>(
                 ForegroundOnlyLocationService.EXTRA_LOCATION
             )
 
-            Log.wtf(TAG, "Foreground location Received: ${location.toText()}")
+            Timber.wtf("Foreground location Received: ${location.toText()}")
             location?.let { mMainViewModel.updateUserLocation(it) }
         }
     }
 
 
     companion object {
-        private const val TAG = "MainActivity"
-
         private const val REQUEST_FOREGROUND_ONLY_PERMISSIONS_REQUEST_CODE = 34
         private const val GOOGLE_MAP_ZOOM_PREF = 15F
 

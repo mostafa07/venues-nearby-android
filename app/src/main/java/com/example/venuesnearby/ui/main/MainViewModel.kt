@@ -3,7 +3,6 @@ package com.example.venuesnearby.ui.main
 import android.app.Application
 import android.content.SharedPreferences
 import android.location.Location
-import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -15,6 +14,7 @@ import com.example.venuesnearby.data.repository.VenuesRepository
 import com.example.venuesnearby.exception.BusinessException
 import rx.android.schedulers.AndroidSchedulers
 import rx.schedulers.Schedulers
+import timber.log.Timber
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -52,7 +52,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun updateUserLocation(location: Location) {
-        Log.d(TAG, "updateUserLocation")
+        Timber.d("updateUserLocation")
 
         _currentUserLocation.value = location
 
@@ -63,7 +63,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         val distanceDifference = location.distanceTo(_lastUpdatedUserLocation.value)
-        Log.d(TAG, "Distance Difference: $distanceDifference")
+        Timber.d("Distance Difference: $distanceDifference")
 
         if (distanceDifference >= DISTANCE_DIFFERENCE_TO_UPDATE) {
             _lastUpdatedUserLocation.value = location
@@ -72,7 +72,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun retrieveVenuesList(latitude: Double, longitude: Double, altitude: Int) {
-        Log.d(TAG, "retrieveVenuesList")
+        Timber.d("retrieveVenuesList")
 
         showLoading()
         val resultsLimit = mSharedPreferences.getInt(RESULTS_LIMIT_SHARED_PREF_KEY, 5)
@@ -123,8 +123,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
 
     companion object {
-        private const val TAG = "MainViewModel"
-
         private const val DISTANCE_DIFFERENCE_TO_UPDATE = 500
 
         private const val RESULTS_LIMIT_SHARED_PREF_KEY = "results_limit"

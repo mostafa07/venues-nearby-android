@@ -11,8 +11,6 @@ import java.util.*
 
 object VenuesRepository {
 
-    private const val TAG = "VenuesRepository"
-
     private const val RADIUS = 500
     private const val CATEGORY_ID = "4d4b7105d754a06374d81259"
     private const val DATE_FORMAT = "yyyyMMdd"

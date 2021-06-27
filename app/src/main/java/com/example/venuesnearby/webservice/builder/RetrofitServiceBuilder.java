@@ -1,7 +1,5 @@
 package com.example.venuesnearby.webservice.builder;
 
-import android.util.Log;
-
 import com.google.gson.GsonBuilder;
 
 import java.util.concurrent.TimeUnit;
@@ -11,16 +9,16 @@ import okhttp3.logging.HttpLoggingInterceptor;
 import retrofit2.Retrofit;
 import retrofit2.adapter.rxjava.RxJavaCallAdapterFactory;
 import retrofit2.converter.gson.GsonConverterFactory;
+import timber.log.Timber;
 
 public class RetrofitServiceBuilder {
 
-    private static final String TAG = RetrofitServiceBuilder.class.getSimpleName();
     private static final String FOURSQUARE_BASE_URL = "https://api.foursquare.com/v2/";
 
     private static OkHttpClient.Builder sOkHttpClientBuilder;
 
     static {
-        final HttpLoggingInterceptor loggingInterceptor = new HttpLoggingInterceptor(message -> Log.d(TAG, message))
+        final HttpLoggingInterceptor loggingInterceptor = new HttpLoggingInterceptor(Timber::d)
                 .setLevel(HttpLoggingInterceptor.Level.BODY);
 
         sOkHttpClientBuilder = new OkHttpClient.Builder()

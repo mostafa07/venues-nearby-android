@@ -10,13 +10,13 @@ import android.os.Binder
 import android.os.Build
 import android.os.IBinder
 import android.os.Looper
-import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.example.venuesnearby.R
 import com.example.venuesnearby.ui.main.MainActivity
 import com.example.venuesnearby.util.toText
 import com.google.android.gms.location.*
+import timber.log.Timber
 import java.util.concurrent.TimeUnit
 
 class ForegroundOnlyLocationService : Service() {
@@ -35,7 +35,7 @@ class ForegroundOnlyLocationService : Service() {
 
     @SuppressLint("LongLogTag")
     override fun onCreate() {
-        Log.d(TAG, "OnCreate")
+        Timber.d("OnCreate")
         super.onCreate()
 
         mNotificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -70,7 +70,7 @@ class ForegroundOnlyLocationService : Service() {
 
     @SuppressLint("LongLogTag")
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
-        Log.d(TAG, "onStartCommand")
+        Timber.d("onStartCommand")
 
         val cancelLocationTrackingFromNotification = intent.getBooleanExtra(
             EXTRA_CANCEL_LOCATION_TRACKING_FROM_NOTIFICATION, false
@@ -86,7 +86,7 @@ class ForegroundOnlyLocationService : Service() {
 
     @SuppressLint("LongLogTag")
     override fun onBind(intent: Intent): IBinder {
-        Log.d(TAG, "onBind")
+        Timber.d("onBind")
 
         // MainActivity (client) comes into foreground and binds to service, so the service can become a background services.
         stopForeground(true)
@@ -97,7 +97,7 @@ class ForegroundOnlyLocationService : Service() {
 
     @SuppressLint("LongLogTag")
     override fun onRebind(intent: Intent?) {
-        Log.d(TAG, "onRebind")
+        Timber.d("onRebind")
 
         // MainActivity (client) returns to the foreground and rebinds to service, so the service can become a background services.
         stopForeground(true)
@@ -108,12 +108,12 @@ class ForegroundOnlyLocationService : Service() {
 
     @SuppressLint("LongLogTag")
     override fun onUnbind(intent: Intent?): Boolean {
-        Log.d(TAG, "onUnbind")
+        Timber.d("onUnbind")
 
         // MainActivity (client) leaves foreground, so service needs to become a foreground service to maintain the 'while-in-use' label.
         // NOTE: If this method is called due to a configuration change in MainActivity, we do nothing.
         if (!mIsConfigurationChange) {
-            Log.d(TAG, "Start foreground service")
+            Timber.d("Start foreground service")
             val notification = generateNotification(mCurrentLocation)
             startForeground(NOTIFICATION_ID, notification)
             mIsServiceRunningInForeground = true
@@ -125,20 +125,20 @@ class ForegroundOnlyLocationService : Service() {
 
     @SuppressLint("LongLogTag")
     override fun onDestroy() {
-        Log.d(TAG, "onDestroy")
+        Timber.d("onDestroy")
         super.onDestroy()
     }
 
     @SuppressLint("LongLogTag")
     override fun onConfigurationChanged(newConfig: Configuration) {
-        Log.d(TAG, "onConfigurationChanged")
+        Timber.d("onConfigurationChanged")
         super.onConfigurationChanged(newConfig)
         mIsConfigurationChange = true
     }
 
     @SuppressLint("LongLogTag")
     fun subscribeToLocationUpdates(isRealtimeMode: Boolean) {
-        Log.d(TAG, "SubscribeToLocationUpdates")
+        Timber.d("SubscribeToLocationUpdates")
 
         startService(Intent(applicationContext, ForegroundOnlyLocationService::class.java))
 
@@ -158,26 +158,26 @@ class ForegroundOnlyLocationService : Service() {
                 Looper.getMainLooper()
             )
         } catch (unlikely: SecurityException) {
-            Log.e(TAG, "Lost location permissions. Couldn't remove updates. $unlikely")
+            Timber.e("Lost location permissions. Couldn't remove updates. $unlikely")
         }
     }
 
     @SuppressLint("LongLogTag")
     fun unsubscribeToLocationUpdates() {
-        Log.d(TAG, "UnsubscribeToLocationUpdates")
+        Timber.d("UnsubscribeToLocationUpdates")
 
         try {
             val removeTask = mFusedLocationProviderClient.removeLocationUpdates(mLocationCallback)
             removeTask.addOnCompleteListener { task ->
                 if (task.isSuccessful) {
-                    Log.d(TAG, "Location Callback removed.")
+                    Timber.d("Location Callback removed.")
                     stopSelf()
                 } else {
-                    Log.d(TAG, "Failed to remove Location Callback.")
+                    Timber.d("Failed to remove Location Callback.")
                 }
             }
         } catch (unlikely: SecurityException) {
-            Log.e(TAG, "Lost location permissions. Couldn't remove updates. $unlikely")
+            Timber.e("Lost location permissions. Couldn't remove updates. $unlikely")
         }
     }
 
@@ -186,7 +186,7 @@ class ForegroundOnlyLocationService : Service() {
      */
     @SuppressLint("LongLogTag")
     private fun generateNotification(location: Location?): Notification {
-        Log.d(TAG, "generateNotification()")
+        Timber.d("generateNotification()")
 
         // Main steps for building a BIG_TEXT_STYLE notification:
         //      0. Get data
@@ -263,7 +263,6 @@ class ForegroundOnlyLocationService : Service() {
     }
 
     companion object {
-        private const val TAG = "ForegroundOnlyLocationService"
         private const val PACKAGE_NAME = "com.example.venuesnearby"
 
         internal const val ACTION_FOREGROUND_ONLY_LOCATION_BROADCAST =

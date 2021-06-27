@@ -15,7 +15,6 @@ import java.util.List;
 public abstract class BaseRecyclerViewAdapter<T, V extends ViewDataBinding>
         extends RecyclerView.Adapter<BaseRecyclerViewAdapter<T, V>.BaseViewHolder> {
 
-    private static final String LOG_TAG = BaseRecyclerViewAdapter.class.getSimpleName();
     public static final int ZERO_POSITION = 0;
 
     private List<T> mDataList;

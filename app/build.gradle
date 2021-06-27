@@ -83,6 +83,9 @@ dependencies {
     // Shimmer Effect Layout
     implementation 'com.facebook.shimmer:shimmer:0.5.0@aar'
 
+    // Timber
+    implementation 'com.jakewharton.timber:timber:4.7.1'
+
     testImplementation 'junit:junit:4.+'
     androidTestImplementation 'androidx.test.ext:junit:1.1.2'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.3.0'

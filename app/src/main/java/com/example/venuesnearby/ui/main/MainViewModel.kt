@@ -8,8 +8,8 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.preference.PreferenceManager
 import com.example.venuesnearby.R
-import com.example.venuesnearby.data.model.Venue
 import com.example.venuesnearby.data.model.app.CustomMessage
+import com.example.venuesnearby.data.model.domain.Venue
 import com.example.venuesnearby.data.repository.VenuesRepository
 import com.example.venuesnearby.exception.BusinessException
 import rx.android.schedulers.AndroidSchedulers
@@ -76,7 +76,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
         showLoading()
         val resultsLimit = mSharedPreferences.getInt(RESULTS_LIMIT_SHARED_PREF_KEY, 5)
-        VenuesRepository.getVenuesWithPhotos(latitude, longitude, altitude, resultsLimit)
+        VenuesRepository.getVenues(latitude, longitude, altitude, resultsLimit)
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe({ venuesList ->

@@ -1,8 +1,9 @@
 package com.example.venuesnearby.data.repository
 
 import com.example.venuesnearby.BuildConfig
-import com.example.venuesnearby.data.model.Photo
-import com.example.venuesnearby.data.model.Venue
+import com.example.venuesnearby.data.model.domain.Venue
+import com.example.venuesnearby.data.model.source.remote.PhotoNetworkModel
+import com.example.venuesnearby.data.model.source.remote.VenueNetworkModel
 import com.example.venuesnearby.webservice.VenuesWebService
 import com.example.venuesnearby.webservice.builder.RetrofitServiceBuilder
 import rx.Observable
@@ -19,6 +20,18 @@ object VenuesRepository {
         RetrofitServiceBuilder.buildService(VenuesWebService::class.java)
 
 
+    fun getVenues(
+        latitude: Double,
+        longitude: Double,
+        altitude: Int,
+        limit: Int
+    ): Observable<List<Venue>> {
+        return searchVenues(latitude, longitude, altitude, limit)
+            .flatMapIterable { it }
+            .map { it.toVenue() }
+            .toList()
+    }
+
     fun getVenuesWithPhotos(
         latitude: Double,
         longitude: Double,
@@ -26,18 +39,16 @@ object VenuesRepository {
         limit: Int
     ): Observable<List<Venue>> {
         return searchVenues(latitude, longitude, altitude, limit)
-//        return searchVenues(latitude, longitude, altitude, limit)
-//            .flatMapIterable {
-//                it
-//            }
-//            .flatMap { venue ->
-//                getVenuePhotos(venue.id)
-//                    .map { retrievedPhotos ->
-//                        venue.photos = retrievedPhotos
-//                        return@map venue
-//                    }
-//            }
-//            .toList()
+            .flatMapIterable { it }
+            .flatMap { venue ->
+                getVenuePhotos(venue.id)
+                    .map { retrievedPhotos ->
+                        venue.photos = retrievedPhotos
+                        return@map venue
+                    }
+            }
+            .map { it.toVenue() }
+            .toList()
     }
 
 
@@ -46,7 +57,7 @@ object VenuesRepository {
         longitude: Double,
         altitude: Int,
         limit: Int
-    ): Observable<List<Venue>> {
+    ): Observable<List<VenueNetworkModel>> {
         val versionDate = SimpleDateFormat(DATE_FORMAT).format(Date())
 
         return mVenuesWebService.searchVenues(
@@ -61,7 +72,7 @@ object VenuesRepository {
         ).map { it.response.venues }
     }
 
-    private fun getVenuePhotos(venueId: String): Observable<List<Photo>> {
+    private fun getVenuePhotos(venueId: String): Observable<List<PhotoNetworkModel>> {
         return mVenuesWebService.getVenuePhotos(
             venueId = venueId,
             version = SimpleDateFormat(DATE_FORMAT).format(Date()),

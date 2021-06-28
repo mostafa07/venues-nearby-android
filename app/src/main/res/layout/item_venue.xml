@@ -7,7 +7,7 @@
 
         <variable
             name="venue"
-            type="com.example.venuesnearby.data.model.Venue" />
+            type="com.example.venuesnearby.data.model.domain.Venue" />
     </data>
 
     <com.google.android.material.card.MaterialCardView
@@ -28,7 +28,7 @@
                 android:layout_marginBottom="16dp"
                 android:contentDescription="@{venue.name}"
                 android:scaleType="centerCrop"
-                app:imageResource="@{!venue.photos.empty ? venue.photos.get(0).url : ``}"
+                app:imageResource="@{venue.photo.url}"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent"

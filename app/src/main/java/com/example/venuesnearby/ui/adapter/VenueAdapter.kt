@@ -2,7 +2,7 @@ package com.example.venuesnearby.ui.adapter
 
 import com.example.venuesnearby.BR
 import com.example.venuesnearby.R
-import com.example.venuesnearby.data.model.Venue
+import com.example.venuesnearby.data.model.domain.Venue
 import com.example.venuesnearby.databinding.ItemVenueBinding
 import com.example.venuesnearby.ui.adapter.base.BaseRecyclerViewAdapter
 

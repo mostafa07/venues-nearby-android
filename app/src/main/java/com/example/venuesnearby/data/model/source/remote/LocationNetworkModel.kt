@@ -1,6 +1,8 @@
 package com.example.venuesnearby.data.model.source.remote
 
-data class Location(
+import com.example.venuesnearby.data.model.domain.Location
+
+data class LocationNetworkModel(
     val address: String,
     val crossStreet: String,
     val lat: Double,
@@ -13,4 +15,9 @@ data class Location(
     val state: String,
     val country: String,
     val formattedAddress: List<String>
-)
+) {
+
+    fun toLocation(): Location {
+        return Location(address, lat, lng, distance, city, state, country)
+    }
+}

@@ -1,10 +1,10 @@
 package com.example.venuesnearby.data.model.source.remote
 
-import com.example.venuesnearby.data.model.Venue
-
 data class VenuesSearchApiResponse(val meta: Meta, val response: VenuesResponse)
 
-data class VenuesResponse(val venues: List<Venue>)
+data class Meta(val code: Number, val requestId: String)
+
+data class VenuesResponse(val venues: List<VenueNetworkModel>)
 
 data class Icon(val prefix: String, val suffix: String)
 

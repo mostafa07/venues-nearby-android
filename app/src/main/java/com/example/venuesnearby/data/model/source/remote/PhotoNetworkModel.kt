@@ -1,10 +1,9 @@
-package com.example.venuesnearby.data.model
+package com.example.venuesnearby.data.model.source.remote
 
-import com.example.venuesnearby.data.model.source.remote.Checkin
-import com.example.venuesnearby.data.model.source.remote.PhotoSource
+import com.example.venuesnearby.data.model.domain.Photo
 import com.google.gson.annotations.SerializedName
 
-data class Photo(
+data class PhotoNetworkModel(
     val id: String,
     val createdAt: Number,
     @SerializedName("source")
@@ -14,8 +13,10 @@ data class Photo(
     val width: Number,
     val height: Number,
     val checkin: Checkin,
-    val visibility: String,
+    val visibility: String
 ) {
-    val url: String
-        get() = prefix + "original" + suffix
+
+    fun toPhoto(): Photo {
+        return Photo(prefix, suffix)
+    }
 }

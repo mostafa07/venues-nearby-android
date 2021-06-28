@@ -29,7 +29,7 @@
                 android:layout_marginBottom="16dp"
                 android:contentDescription="@{viewModel.selectedVenue.name}"
                 android:scaleType="centerCrop"
-                app:imageResource="@{!viewModel.selectedVenue.photos.empty ? viewModel.selectedVenue.photos.get(0).url : ``}"
+                app:imageResource="@{viewModel.selectedVenue.photo.url}"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent"

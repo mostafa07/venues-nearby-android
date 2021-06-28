@@ -144,7 +144,7 @@ class MainActivity : AppCompatActivity() {
     private fun setupRecyclerView() {
         mVenueAdapter = VenueAdapter { venue, _ ->
             mMainViewModel.setSelectedVenue(venue)
-            moveMapToLocation(LatLng(venue.location.lat, venue.location.lng))
+            moveMapToLocation(LatLng(venue.location.lat!!, venue.location.lng!!))
         }
         mBinding.venuesRecyclerView.adapter = mVenueAdapter
     }

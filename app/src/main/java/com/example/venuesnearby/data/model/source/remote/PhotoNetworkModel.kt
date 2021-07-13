@@ -5,7 +5,7 @@ import com.google.gson.annotations.SerializedName
 
 data class PhotoNetworkModel(
     val id: String,
-    val createdAt: Number,
+    val createdAt: Int,
     @SerializedName("source")
     val photoSource: PhotoSource,
     val prefix: String,

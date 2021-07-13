@@ -5,10 +5,11 @@ import androidx.room.PrimaryKey
 import com.example.venuesnearby.data.model.domain.Category
 import com.example.venuesnearby.data.model.source.remote.CategoryNetworkModel
 
-@Entity(tableName = "category")
-internal data class CategoryEntity(
+@Entity(tableName = "CATEGORY")
+data class CategoryEntity(
     @PrimaryKey val id: String,
-    val name: String,
+    val venueId: String = "-1",
+    val name: String
 ) {
 
     fun toCategory(): Category {
@@ -18,8 +19,8 @@ internal data class CategoryEntity(
     companion object {
         fun from(categoryNetworkModel: CategoryNetworkModel): CategoryEntity {
             return CategoryEntity(
-                categoryNetworkModel.id,
-                categoryNetworkModel.name
+                id = categoryNetworkModel.id,
+                name = categoryNetworkModel.name
             )
         }
     }
